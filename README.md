@@ -70,7 +70,17 @@
 7. Listar los clientes que han realizado más de un pedido
 
    ```mysql
-   
+   SELECT DISTINCT
+   	c.nombre,
+   	c.correo_electronico AS correo_electronico
+   FROM clientes AS c
+   JOIN pedidos AS p ON c.id = p.id_cliente
+   WHERE 1 < (
+   	SELECT
+   		COUNT(p.id_cliente) AS contador
+   	FROM pedidos AS p
+   	WHERE p.id_cliente = c.id
+   );
    ```
 
 8. Obtener el cliente con el mayor gasto total
@@ -92,7 +102,21 @@
 9. Mostrar el pedido más reciente de cada cliente
 
    ```mysql
-   
+   SELECT
+   	c.nombre,
+   	p.fecha,
+   	p.total
+   FROM pedidos AS p
+   JOIN clientes AS c ON p.id_cliente = c.id
+   JOIN(
+   	SELECT
+   		p.id_cliente,
+   		MAX(p.fecha) AS MaxDate
+   	FROM pedidos AS p
+   	GROUP BY id_cliente
+   ) AS fecha_max ON p.id_cliente = fecha_max.id_cliente
+   AND
+   p.fecha =  fecha_max.MaxDate;
    ```
 
 10. Obtener el detalle de pedidos (menús y cantidades) para el cliente 'Juan Perez'.
@@ -190,10 +214,27 @@ parámetro el ID del cliente y elimine el cliente junto con todos sus pedidos y 
 pedidos.
 
 ```mysql
+DELIMITER $$
+DROP PROCEDURE IF EXISTS EliminarCliente;
+CREATE PROCEDURE EliminarCliente(
+	IN cliente_id INT
+)
+BEGIN
+	START TRANSACTION;
+	
+	DELETE dp FROM detallesPedidos AS dp
+	JOIN pedidos AS p1 ON dp.id_pedido = p1.id
+	WHERE p1.id_cliente = cliente_id;
+	
+	DELETE FROM pedidos AS p
+	WHERE p.id_cliente = cliente_id;
+	
+	DELETE FROM clientes AS c
+	WHERE c.id = cliente_id;
 
+END $$
+DELIMITER ;
 ```
-
-
 
 ### Crear un procedimiento almacenado para obtener el total
 gastado por un cliente
